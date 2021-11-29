@@ -3,6 +3,7 @@ package com.shifteg.survey;
 import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -13,10 +14,16 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.UnsupportedEncodingException;
+import java.io.WriteAbortedException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 public class MainActivity extends AppCompatActivity implements PageLoadListener {
 
-    public static final String URL = "https://stackoverflow.com/questions/57449900/letting-webview-on-android-work-with-prefers-color-scheme-dark";
-    //    public static final String URL = "fmdskhfks";
+    public static final String URL = "https://surveyprivatemodule.azurewebsites.net/survey/";
     SwipeRefreshLayout refreshLayout = null;
     WebView webView = null;
 
@@ -28,7 +35,10 @@ public class MainActivity extends AppCompatActivity implements PageLoadListener 
 
         initView();
 
-        if (checkUrl(URL))
+        SurveyModel surveyModel = new SurveyModel("1", "Electrician", "الفيوم", "010");
+        String surveyUrl = initializeSurveyUrl(surveyModel);
+
+        if (checkUrl(surveyUrl))
             initActions();
         else {
             Snackbar.make(parentLayout, "Malformed URL !!", Snackbar.LENGTH_LONG).show();
@@ -49,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements PageLoadListener 
 
 
     private boolean checkUrl(final String webUrl) {
-        if (webUrl.isEmpty() || !webUrl.matches("^(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]"))
+        if (webUrl.isEmpty())
             return false;
         return true;
 
@@ -77,5 +87,16 @@ public class MainActivity extends AppCompatActivity implements PageLoadListener 
         if (refreshLayout.isRefreshing()) {
             refreshLayout.setRefreshing(false);
         }
+    }
+
+    private String initializeSurveyUrl(SurveyModel surveyModel) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(URL);
+        builder.append(surveyModel.getProjectId()).append("/");
+        builder.append(surveyModel.getCategory()).append("/");
+        builder.append(surveyModel.getRegion()).append("/");
+        builder.append(surveyModel.getMobile()).append("/");
+
+        return builder.toString();
     }
 }
