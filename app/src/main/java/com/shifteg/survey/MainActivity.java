@@ -1,102 +1,70 @@
 package com.shifteg.survey;
 
-import android.annotation.SuppressLint;
-import android.os.Build;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.databinding.DataBindingUtil;
 
-import com.google.android.material.snackbar.Snackbar;
+import com.shifteg.survey.databinding.ActivityMainBinding;
 
 import java.io.UnsupportedEncodingException;
-import java.io.WriteAbortedException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-public class MainActivity extends AppCompatActivity implements PageLoadListener {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
-    public static final String URL = "https://surveyprivatemodule.azurewebsites.net/survey/";
-    SwipeRefreshLayout refreshLayout = null;
-    WebView webView = null;
+public class MainActivity extends AppCompatActivity {
+
+
+    private static final String TAG = "MainActivityTag";
+    private static final String BASE_URL = "https://us-central1-dynamic-geo-14ed0.cloudfunctions.net/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        View parentLayout = findViewById(android.R.id.content);
 
-        initView();
-
-        SurveyModel surveyModel = new SurveyModel("1", "Electrician", "الفيوم", "010");
-        String surveyUrl = initializeSurveyUrl(surveyModel);
-
-        if (checkUrl(surveyUrl))
-            initActions();
-        else {
-            Snackbar.make(parentLayout, "Malformed URL !!", Snackbar.LENGTH_LONG).show();
-            refreshLayout.setOnRefreshListener(() -> onPageLoaded());
-        }
+        SurveyModel survey = new SurveyModel("0100", 2, "Electricians", "الفيوم");
+        checkForSurvey(survey);
 
     }
 
-    private void initView() {
-        refreshLayout = findViewById(R.id.swipeRefreshLayout);
-        webView = findViewById(R.id.webView);
-    }
-
-    private void initActions() {
-        loadSurvey(URL);
-        refreshLayout.setOnRefreshListener(() -> loadSurvey(URL));
+    private void startSurvey(final SurveyModel survey) {
+        Intent intent = new Intent(MainActivity.this, SurveyActivity.class);
+        intent.putExtra("SurveyModel", survey);
+        startActivity(intent);
     }
 
 
-    private boolean checkUrl(final String webUrl) {
-        if (webUrl.isEmpty())
-            return false;
-        return true;
+    private void checkForSurvey(final SurveyModel survey) {
 
-    }
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        API apiInterface = retrofit.create(API.class);
 
-    @SuppressLint("SetJavaScriptEnabled")
-    private void loadSurvey(final String webUrl) {
+        Call<SurveyModel> call = apiInterface.storePost(survey);
 
-        webView.getSettings().setJavaScriptEnabled(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            webView.getSettings().setForceDark(WebSettings.FORCE_DARK_AUTO);
-        }
-        webView.loadUrl(webUrl);
-        webView.setWebViewClient(new WebViewClient() {
+        call.enqueue(new Callback<SurveyModel>() {
             @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                onPageLoaded();
+            public void onResponse(@NonNull Call<SurveyModel> call, @NonNull Response<SurveyModel> response) {
+                Log.d(TAG, "onResponse: " + response.code());
+                if (response.code() == 200)
+                    startSurvey(survey);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<SurveyModel> call, Throwable t) {
+                Log.d(TAG, "onFailure " + t.getMessage());
             }
         });
-    }
 
-    @Override
-    public void onPageLoaded() {
-        if (refreshLayout.isRefreshing()) {
-            refreshLayout.setRefreshing(false);
-        }
-    }
-
-    private String initializeSurveyUrl(SurveyModel surveyModel) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(URL);
-        builder.append(surveyModel.getProjectId()).append("/");
-        builder.append(surveyModel.getCategory()).append("/");
-        builder.append(surveyModel.getRegion()).append("/");
-        builder.append(surveyModel.getMobile()).append("/");
-
-        return builder.toString();
     }
 }
