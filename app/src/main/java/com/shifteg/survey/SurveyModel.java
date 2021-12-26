@@ -2,6 +2,7 @@ package com.shifteg.survey;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -109,7 +110,10 @@ public class SurveyModel implements Parcelable {
 
     private String encodeArabic(String text) {
         try {
-            return java.net.URLEncoder.encode(text, StandardCharsets.UTF_8.name());
+            String encoded = java.net.URLEncoder.encode(text, StandardCharsets.UTF_8.name());
+            encoded = encoded.replaceAll("\\+", "%20");
+            Log.d("SurveyActivityTag", encoded);
+            return encoded;
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             return "";
